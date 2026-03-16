@@ -30,3 +30,20 @@ export interface RegisterDto {
 export interface RegisterResponse {
   message: string;
 }
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordByTokenDto {
+  token: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordByTokenResponse {
+  message: string;
+}

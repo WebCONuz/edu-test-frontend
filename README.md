@@ -1,36 +1,230 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎓 Edu Test — Frontend
 
-## Getting Started
+Test yechish platformasining frontend qismi. Next.js 15, TypeScript va shadcn/ui asosida qurilgan.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🛠 Texnologiyalar
+
+| Texnologiya              | Maqsad                   |
+| ------------------------ | ------------------------ |
+| Next.js 15 (App Router)  | Frontend framework       |
+| TypeScript               | Type safety              |
+| Tailwind CSS v4          | Styling                  |
+| shadcn/ui (Radix + Nova) | UI komponentlar          |
+| TanStack Query           | Server state, caching    |
+| Zustand + persist        | Client state (auth user) |
+| React Hook Form + Zod    | Form validation          |
+| react-katex + katex      | LaTeX formula render     |
+| js-cookie                | Cookie management        |
+
+---
+
+## 📁 Loyiha strukturasi
+
+```
+edu-test-frontend/
+├── app/                        → Next.js routing
+│   ├── (auth)/                 → Himoyasiz sahifalar
+│   │   ├── login/
+│   │   ├── register/
+│   │   ├── forgot-password/
+│   │   └── reset-password/
+│   ├── admin/                  → Admin panel (admin, super_admin)
+│   │   ├── dashboard/
+│   │   ├── users/
+│   │   ├── subjects/
+│   │   ├── questions/
+│   │   ├── sessions/
+│   │   └── students/
+│   ├── teacher/                → Teacher panel
+│   │   ├── dashboard/
+│   │   ├── subjects/
+│   │   └── questions/
+│   ├── student/                → Student interfeysi (ochiq)
+│   │   ├── test/
+│   │   ├── result/
+│   │   └── results/
+│   ├── layout.tsx              → Root layout (Providers)
+│   ├── page.tsx                → Landing page
+│   └── providers.tsx           → QueryClientProvider
+├── features/                   → Business logic (feature-based)
+│   ├── auth/
+│   │   ├── api/                → auth.api.ts
+│   │   ├── components/         → LoginForm, RegisterForm, ForgotPasswordForm, ResetPasswordForm
+│   │   ├── hooks/              → useLogin, useRegister, useForgotPassword, useResetPassword
+│   │   ├── store/              → auth.store.ts (Zustand)
+│   │   └── types/              → auth.types.ts
+│   ├── students/
+│   │   ├── api/                → students.api.ts
+│   │   ├── components/         → StudentEntryForm, StudentTestPage, StudentResultPage, StudentMyResultsPage
+│   │   ├── hooks/              → useStudentEntry, useStudentTest, useMyResults
+│   │   └── types/              → student.types.ts
+│   ├── subjects/
+│   │   ├── api/                → subjects.api.ts
+│   │   ├── hooks/              → useSubjects
+│   │   └── types/              → subject.types.ts
+│   └── landing/
+│       └── components/         → LandingPage
+├── shared/
+│   ├── components/             → MathText (LaTeX render)
+│   ├── hooks/                  → global hooks
+│   ├── types/                  → react-katex.d.ts, global types
+│   └── utils/                  → yordamchi funksiyalar
+├── components/
+│   └── ui/                     → shadcn komponentlari
+├── lib/
+│   ├── constants.ts            → API_URL, ROUTES
+│   ├── fetcher.ts              → global fetch wrapper (401 → auto refresh)
+│   └── query-client.ts         → TanStack Query sozlamalari
+└── middleware.ts               → Rol tekshiruv + token refresh
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 👥 Rollar va sahifalar
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Rol           | Sahifalar                            |
+| ------------- | ------------------------------------ |
+| `super_admin` | `/admin/*`                           |
+| `admin`       | `/admin/*`                           |
+| `teacher`     | `/teacher/*`                         |
+| Student       | `/student/*` (login shart emas)      |
+| Hamma         | `/` (landing), `/login`, `/register` |
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔄 Student flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+/ (landing)
+    ↓
+/student → telefon + ism + fan + savol soni + vaqt
+    ↓
+check-phone → mavjud user → ism avtomatik to'ldiriladi
+    ↓
+/student/test → savollar + timer + progress
+    ↓
+/student/result → natija + tahlil
+    ↓
+/student/results → barcha testlar tarixi (telefon orqali)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🔒 Autentifikatsiya
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Access token** — `httpOnly cookie` da (1 soat)
+- **Refresh token** — `httpOnly cookie` da (1 kun)
+- Frontend token ni ko'rmaydi — barcha so'rovlarda `credentials: 'include'`
+- `middleware.ts` — har bir sahifaga kirishda token tekshiradi
+- Token expire → `middleware` avtomatik `GET /auth/refresh` chaqiradi
+- Refresh ham ishlamasa → `/` (landing) ga redirect
+- `Zustand persist` — user ma'lumotlari (role, name) localStorage da
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## ➕ LaTeX formulalar
+
+Matematik formulalar `$...$` formatida keladi va `react-katex` orqali render qilinadi:
+
+```tsx
+import { MathText } from "@/shared/components/MathText";
+
+<MathText text="$\frac{3}{4}$ kg un kerak" />;
+// → ¾ kg un kerak
+```
+
+---
+
+## 🚀 O'rnatish
+
+### 1. Repozitoriyani clone qilish
+
+```bash
+git clone https://github.com/username/edu-test-frontend.git
+cd edu-test-frontend
+```
+
+### 2. Paketlarni o'rnatish
+
+```bash
+npm install
+```
+
+### 3. `.env.local` fayl yaratish
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
+
+### 4. Dasturni ishga tushirish
+
+```bash
+# Development
+npm run dev
+
+# Production
+npm run build
+npm run start
+```
+
+Dastur `http://localhost:3000` da ishga tushadi.
+
+> ⚠️ Backend `http://localhost:4000` da ishlab turishi kerak. Backend repo: [edu-test-backend](https://github.com/username/edu-test-backend)
+
+---
+
+## 📖 Sahifalar
+
+| URL                         | Tavsif              | Himoya                        |
+| --------------------------- | ------------------- | ----------------------------- |
+| `/`                         | Landing page        | Ochiq                         |
+| `/login`                    | Tizimga kirish      | Ochiq (login bo'lsa redirect) |
+| `/register`                 | Teacher ro'yxati    | Ochiq (login bo'lsa redirect) |
+| `/forgot-password`          | Parolni tiklash     | Ochiq                         |
+| `/reset-password?token=...` | Yangi parol         | Ochiq                         |
+| `/student`                  | Test boshlash       | Ochiq                         |
+| `/student/test`             | Test yechish        | Ochiq                         |
+| `/student/result`           | Natija              | Ochiq                         |
+| `/student/results`          | Barcha natijalar    | Ochiq                         |
+| `/admin/dashboard`          | Admin bosh sahifa   | admin, super_admin            |
+| `/admin/users`              | Foydalanuvchilar    | admin, super_admin            |
+| `/admin/subjects`           | Fanlar              | admin, super_admin            |
+| `/admin/questions`          | Savollar            | admin, super_admin            |
+| `/admin/sessions`           | Sessiyalar          | admin, super_admin            |
+| `/admin/students`           | Studentlar          | admin, super_admin            |
+| `/teacher/dashboard`        | Teacher bosh sahifa | teacher                       |
+| `/teacher/subjects`         | Fanlar              | teacher                       |
+| `/teacher/questions`        | Savollar            | teacher                       |
+
+---
+
+## 🗂 Feature moduli strukturasi
+
+Har bir feature quyidagi tuzilishda bo'ladi:
+
+```
+features/[feature-name]/
+├── api/         → backend bilan muloqot (fetcher ishlatadi)
+├── components/  → UI komponentlar
+├── hooks/       → TanStack Query hooks (useQuery, useMutation)
+├── store/       → Zustand store (agar kerak bo'lsa)
+└── types/       → TypeScript interfeyslari
+```
+
+**Qoida:** `app/` papkasidagi `page.tsx` faqat feature komponentni chaqiradi — hech qanday logic yo'q.
+
+```tsx
+// app/student/page.tsx
+import { StudentEntryForm } from "@/features/students/components/StudentEntryForm";
+export default function StudentPage() {
+  return <StudentEntryForm />;
+}
+```
+
+---
+
+## 📝 Litsenziya
+
+MIT
