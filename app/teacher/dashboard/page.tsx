@@ -1,7 +1,5 @@
-export default function TeacherDashboardPage() {
-  return (
-    <div>
-      <h1>Teacher Dashboard</h1>
-    </div>
-  );
+import { TeacherDashboardPage } from "@/features/teacher/components/dashboard/TeacherDashboardPage";
+
+export default function DashboardPage() {
+  return <TeacherDashboardPage />;
 }
