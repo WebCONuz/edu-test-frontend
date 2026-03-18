@@ -167,7 +167,7 @@ export function StudentResultPage() {
             className="rounded-xl h-11"
             onClick={() => {
               localStorage.removeItem("test_result");
-              router.push("/student");
+              router.push("/");
             }}
           >
             <Home className="w-4 h-4 mr-2" />

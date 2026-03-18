@@ -1,36 +1,25 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import type { PanelConfig } from "./types";
 
-const pageTitles: Record<string, { title: string; description: string }> = {
-  "/teacher/dashboard": {
-    title: "Dashboard",
-    description: "Umumiy statistika va so'nggi faoliyat",
-  },
-  "/teacher/subjects": {
-    title: "Fanlar",
-    description: "Fanlar ro'yxati va boshqaruv",
-  },
-  "/teacher/questions": {
-    title: "Savollar",
-    description: "Savollar ro'yxati va boshqaruv",
-  },
-};
+interface PanelHeaderProps {
+  pageTitles: PanelConfig["pageTitles"];
+}
 
-export function TeacherHeader() {
+export function PanelHeader({ pageTitles }: PanelHeaderProps) {
   const pathname = usePathname();
   const page = pageTitles[pathname] ?? { title: "", description: "" };
 
   return (
     <header
       style={{
-        height: 64,
+        height: 60,
         backgroundColor: "var(--card)",
         borderBottom: "1px solid var(--border)",
-        padding: "0 24px",
+        padding: "0 16px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         position: "sticky",
         top: 0,
         zIndex: 30,

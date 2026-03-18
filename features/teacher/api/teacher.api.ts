@@ -6,11 +6,14 @@ import type {
   UpdateSubjectDto,
   CreateQuestionDto,
   UpdateQuestionDto,
+  PaginatedResponse,
 } from "../types/teacher.types";
 
 export const teacherApi = {
   // Subjects
   getSubjects: () => fetcher<Subject[]>("/subjects"),
+
+  getFullSubjects: () => fetcher<Subject[]>("/subjects/full"),
 
   createSubject: (data: CreateSubjectDto) =>
     fetcher<Subject>("/subjects", {
@@ -30,7 +33,17 @@ export const teacherApi = {
     }),
 
   // Questions
-  getQuestions: () => fetcher<Question[]>("/questions"),
+  getQuestions: (page = 1, limit = 30, subjectId?: string) => {
+    const params: Record<string, string | number | boolean> = { page, limit };
+    if (subjectId) params.subjectId = subjectId;
+    return fetcher<PaginatedResponse<Question>>("/questions", { params });
+  },
+
+  getFullQuestions: (page = 1, limit = 30, subjectId?: string) => {
+    const params: Record<string, string | number | boolean> = { page, limit };
+    if (subjectId) params.subjectId = subjectId;
+    return fetcher<PaginatedResponse<Question>>("/questions/full", { params });
+  },
 
   getQuestionsBySubject: (subjectId: string) =>
     fetcher<Question[]>(`/questions/by-subject/${subjectId}`),

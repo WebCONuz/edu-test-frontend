@@ -26,10 +26,27 @@ export function LoginForm() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "solihsalimov@gmail.com",
+      password: "123456789",
     },
   });
+  //   SUPER ADMIN --------------------------------
+  //   {
+  //     "email": "superadmin@gmail.com",
+  //     "password": "superadmin123"
+  //   }
+
+  //   ADMIN --------------------------------------
+  //   {
+  //     "email": "solihsalimov@gmail.com",
+  //     "password": "123456789"
+  //   }
+
+  //   TEACHER ------------------------------------
+  //   {
+  //     "email": "muxammaditoshtemirov@gmail.com",
+  //     "password": "123456"
+  //   }
 
   const onSubmit = (data: LoginFormValues) => {
     login(data);

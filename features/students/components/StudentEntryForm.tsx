@@ -12,12 +12,14 @@ import {
   Hash,
   Clock,
   ArrowRight,
+  Home,
 } from "lucide-react";
 import { useStudentEntry } from "../hooks/useStudentEntry";
 import { useSubjects } from "@/features/subjects/hooks/useSubjects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 
 const schema = z.object({
   phone: z
@@ -285,8 +287,14 @@ export function StudentEntryForm() {
             </Button>
           </form>
         </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-3">
+        <Link
+          href="/"
+          className="flex w-full justify-center gap-2 text-sm mt-3"
+        >
+          <Home className="w-4 h-4" />
+          <span>Bosh sahifaga qaytish</span>
+        </Link>
+        <p className="text-center text-xs text-muted-foreground mt-2">
           Edu Test Platform © {new Date().getFullYear()}
         </p>
       </div>

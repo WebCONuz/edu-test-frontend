@@ -9,7 +9,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterDto) => authApi.register(data),
     onSuccess: () => {
-      router.push("/login");
+      router.push("/teacher/dashboard");
     },
     onError: (error: Error) => {
       console.error(error.message);

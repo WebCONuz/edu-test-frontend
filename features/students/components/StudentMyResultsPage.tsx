@@ -283,9 +283,9 @@ export function StudentMyResultsPage() {
             <Button
               variant="outline"
               className="w-full h-11 rounded-xl"
-              onClick={() => (window.location.href = "/student")}
+              onClick={() => (window.location.href = "/")}
             >
-              Testga qaytish
+              Bosh sahifaga qaytrish
             </Button>
           </>
         )}

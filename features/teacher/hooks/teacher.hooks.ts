@@ -16,6 +16,13 @@ export function useSubjects() {
   });
 }
 
+export function useFullSubjects() {
+  return useQuery({
+    queryKey: ["subjects"],
+    queryFn: teacherApi.getFullSubjects,
+  });
+}
+
 export function useCreateSubject() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -48,10 +55,17 @@ export function useDeleteSubject() {
 }
 
 // ===== QUESTIONS =====
-export function useQuestions() {
+export function useQuestions(page = 1, limit = 30, subjectId?: string) {
   return useQuery({
-    queryKey: ["questions"],
-    queryFn: teacherApi.getQuestions,
+    queryKey: ["questions", page, limit, subjectId],
+    queryFn: () => teacherApi.getQuestions(page, limit, subjectId),
+  });
+}
+
+export function useFullQuestions(page = 1, limit = 30, subjectId?: string) {
+  return useQuery({
+    queryKey: ["questions", page, limit, subjectId],
+    queryFn: () => teacherApi.getFullQuestions(page, limit, subjectId),
   });
 }
 
@@ -98,13 +112,15 @@ export function useImportQuestions() {
 }
 
 // O'z savollarini filter qilish uchun
-export function useMyQuestions() {
+export function useMyQuestions(page = 1, limit = 20, subjectId?: string) {
   const { user } = useAuthStore();
-  const { data, ...rest } = useQuestions();
-
-  const myQuestions = data?.filter((q) => q.createdBy.id === user?.id) ?? [];
-
-  return { data: myQuestions, ...rest };
+  const result = useQuestions(page, limit, subjectId);
+  const myData =
+    result.data?.data.filter((q) => q.createdBy.id === user?.id) ?? [];
+  return {
+    ...result,
+    data: result.data ? { ...result.data, data: myData } : undefined,
+  };
 }
 
 // O'z fanlarini filter qilish uchun (createdBy yo'q, hamma ko'radi)

@@ -132,8 +132,6 @@ export function StudentTestPage() {
           <p className="text-xs text-muted-foreground mb-3">Savollar:</p>
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: totalQuestions }).map((_, i) => {
-              const q = useStudentTest;
-              const questionId = currentQuestion ? undefined : undefined;
               const isAnswered = answers[Object.keys(answers)[i]] !== undefined;
               const isCurrent = i === currentIndex;
 

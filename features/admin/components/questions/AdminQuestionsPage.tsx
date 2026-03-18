@@ -2,20 +2,18 @@
 
 import { useState } from "react";
 import {
-  useMyQuestions,
+  useFullQuestions,
   useDeleteQuestion,
   useCreateQuestion,
   useImportQuestions,
   useSubjects,
   useUpdateQuestion,
-} from "../../hooks/teacher.hooks";
+} from "@/features/teacher/hooks/teacher.hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import type { Question } from "../../types/teacher.types";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,26 +25,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Plus,
   Trash2,
   HelpCircle,
   Loader2,
   FileUp,
   CheckCircle,
+  Pencil,
   FileInput,
   ChevronDown,
   ChevronUp,
-  Pencil,
 } from "lucide-react";
 import { MathText } from "@/shared/components/MathText";
+import type { Question } from "@/features/teacher/types/teacher.types";
 import { useSearchParams } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 const OPTION_LABELS = ["A", "B", "C", "D"];
 
@@ -64,11 +63,11 @@ const defaultOptions: AnswerOptionForm[] = OPTION_LABELS.map((label, i) => ({
   displayOrder: i,
 }));
 
-export function TeacherQuestionsPage() {
+export function AdminQuestionsPage() {
   const [filterSubject, setFilterSubject] = useState("");
   const [page, setPage] = useState(1);
   const LIMIT = 30;
-  const { data: questionsData, isLoading } = useMyQuestions(
+  const { data: questionsData, isLoading } = useFullQuestions(
     page,
     LIMIT,
     filterSubject || undefined,
@@ -79,9 +78,9 @@ export function TeacherQuestionsPage() {
   const { data: subjects } = useSubjects();
   const { mutate: deleteQuestion, isPending: isDeleting } = useDeleteQuestion();
   const { mutate: createQuestion, isPending: isCreating } = useCreateQuestion();
+  const { mutate: updateQuestion, isPending: isUpdating } = useUpdateQuestion();
   const { mutate: importQuestions, isPending: isImporting } =
     useImportQuestions();
-  const { mutate: updateQuestion, isPending: isUpdating } = useUpdateQuestion();
 
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") === "import" ? "import" : "list";
@@ -89,14 +88,20 @@ export function TeacherQuestionsPage() {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editQuestion, setEditQuestion] = useState<Question | null>(null);
+  const [editQuestionText, setEditQuestionText] = useState("");
+  const [editSubjectId, setEditSubjectId] = useState("");
+  const [editOptions, setEditOptions] =
+    useState<AnswerOptionForm[]>(defaultOptions);
+  const [editError, setEditError] = useState("");
 
-  // Create form state
+  // Create form
   const [questionText, setQuestionText] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [options, setOptions] = useState<AnswerOptionForm[]>(defaultOptions);
   const [createError, setCreateError] = useState("");
 
-  // Import state
+  // Import
   const [importSubjectId, setImportSubjectId] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importSuccess, setImportSuccess] = useState<{
@@ -104,14 +109,6 @@ export function TeacherQuestionsPage() {
     skipped: number;
   } | null>(null);
   const [importError, setImportError] = useState("");
-
-  //   Edit states
-  const [editQuestion, setEditQuestion] = useState<Question | null>(null);
-  const [editQuestionText, setEditQuestionText] = useState("");
-  const [editSubjectId, setEditSubjectId] = useState("");
-  const [editOptions, setEditOptions] =
-    useState<AnswerOptionForm[]>(defaultOptions);
-  const [editError, setEditError] = useState("");
 
   const handleOptionChange = (index: number, text: string) => {
     setOptions((prev) =>
@@ -139,7 +136,6 @@ export function TeacherQuestionsPage() {
       return setCreateError("Barcha javob variantlarini to'ldiring");
     if (!options.some((o) => o.isCorrect))
       return setCreateError("To'g'ri javobni belgilang");
-
     createQuestion(
       {
         questionText: questionText.trim(),
@@ -155,29 +151,6 @@ export function TeacherQuestionsPage() {
         onError: (err: Error) => setCreateError(err.message),
       },
     );
-  };
-
-  const handleImport = () => {
-    if (!importSubjectId) return setImportError("Fan tanlanmagan");
-    if (!importFile) return setImportError("Fayl tanlanmagan");
-
-    importQuestions(
-      { subjectId: importSubjectId, file: importFile },
-      {
-        onSuccess: (res) => {
-          setImportSuccess({ saved: res.saved, skipped: res.skipped });
-          setImportFile(null);
-          setImportSubjectId("");
-          setImportError("");
-        },
-        onError: (err: Error) => setImportError(err.message),
-      },
-    );
-  };
-
-  const handleDelete = () => {
-    if (!deleteId) return;
-    deleteQuestion(deleteId, { onSuccess: () => setDeleteId(null) });
   };
 
   const openEdit = (q: Question) => {
@@ -214,9 +187,6 @@ export function TeacherQuestionsPage() {
     if (!editSubjectId) return setEditError("Fan tanlanmagan");
     if (editOptions.some((o) => !o.optionText.trim()))
       return setEditError("Barcha javob variantlarini to'ldiring");
-    if (!editOptions.some((o) => o.isCorrect))
-      return setEditError("To'g'ri javobni belgilang");
-
     updateQuestion(
       {
         id: editQuestion.id,
@@ -233,21 +203,54 @@ export function TeacherQuestionsPage() {
     );
   };
 
+  const handleImport = () => {
+    if (!importSubjectId) return setImportError("Fan tanlanmagan");
+    if (!importFile) return setImportError("Fayl tanlanmagan");
+    importQuestions(
+      { subjectId: importSubjectId, file: importFile },
+      {
+        onSuccess: (res) => {
+          setImportSuccess({ saved: res.saved, skipped: res.skipped });
+          setImportFile(null);
+          setImportSubjectId("");
+          setImportError("");
+        },
+        onError: (err: Error) => setImportError(err.message),
+      },
+    );
+  };
+
+  const handleDelete = () => {
+    if (!deleteId) return;
+    deleteQuestion(deleteId, { onSuccess: () => setDeleteId(null) });
+  };
+
   const handleFilterChange = (value: string) => {
     setFilterSubject(value);
     setPage(1); // filter o'zgarganda birinchi sahifaga qayt
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>
-        Mening savollarim
-      </h2>
+    <>
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        style={{ display: "flex", flexDirection: "column" }}
+        style={{
+          maxWidth: 1200,
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+        }}
       >
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 2 }}>
+            Barcha Savollar
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
+            Jami {questions?.length ?? 0} ta savol
+          </p>
+        </div>
+
         {/* Header */}
         <div
           style={{
@@ -321,7 +324,7 @@ export function TeacherQuestionsPage() {
           </select>
         </div>
 
-        {/* ===== LIST TAB ===== */}
+        {/* LIST TAB */}
         <TabsContent value="list">
           {isLoading ? (
             <div
@@ -355,19 +358,15 @@ export function TeacherQuestionsPage() {
                 }}
               />
               <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
-                Hali siz savol qo'shganingiz yo'q
-              </p>
-              <p
-                style={{
-                  fontSize: 13,
-                  color: "var(--muted-foreground)",
-                  marginBottom: 16,
-                }}
-              >
-                Yangi savol yarating yoki fayldan import qiling
+                Hali savol yo'q
               </p>
               <div
-                style={{ display: "flex", gap: 8, justifyContent: "center" }}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "center",
+                  marginTop: 16,
+                }}
               >
                 <Button
                   variant="outline"
@@ -408,7 +407,6 @@ export function TeacherQuestionsPage() {
                           : "none",
                     }}
                   >
-                    {/* Question header */}
                     <div
                       style={{
                         display: "flex",
@@ -417,7 +415,6 @@ export function TeacherQuestionsPage() {
                         padding: "14px 20px",
                       }}
                     >
-                      {/* Status dot */}
                       <div
                         style={{
                           width: 8,
@@ -428,8 +425,6 @@ export function TeacherQuestionsPage() {
                           flexShrink: 0,
                         }}
                       />
-
-                      {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
                           style={{
@@ -452,6 +447,33 @@ export function TeacherQuestionsPage() {
                           >
                             {q.subject.name}
                           </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: q.isActive ? "#10b981" : "#f59e0b",
+                              border: q.isActive
+                                ? "1px solid #10b981"
+                                : "1px solid #f59e0b",
+                              backgroundColor: q.isActive
+                                ? "#EBF8F4"
+                                : "#F4F4DB",
+                              padding: "1px 6px",
+                              borderRadius: 999,
+                            }}
+                          >
+                            {q.isActive ? "active" : "in-active"}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "var(--muted-foreground)",
+                              border: "1px solid var(--border)",
+                              padding: "1px 6px",
+                              borderRadius: 999,
+                            }}
+                          >
+                            {q.createdBy.fullName}
+                          </span>
                           {q.source === "file_import" && (
                             <span
                               style={{
@@ -471,7 +493,6 @@ export function TeacherQuestionsPage() {
                             </span>
                           )}
                         </div>
-
                         <p
                           style={{
                             fontSize: 14,
@@ -485,9 +506,6 @@ export function TeacherQuestionsPage() {
                           <MathText text={q.questionText} />
                         </p>
                       </div>
-
-                      {/* Actions */}
-                      {/* Actions */}
                       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                         <Button
                           variant="ghost"
@@ -495,34 +513,49 @@ export function TeacherQuestionsPage() {
                           onClick={() =>
                             setExpandedId(isExpanded ? null : q.id)
                           }
-                          className="w-8 h-8 p-0 rounded-md"
+                          style={{
+                            borderRadius: 6,
+                            width: 32,
+                            height: 32,
+                            padding: 0,
+                          }}
                         >
                           {isExpanded ? (
-                            <ChevronUp className="w-3.5 h-3.5" />
+                            <ChevronUp style={{ width: 14, height: 14 }} />
                           ) : (
-                            <ChevronDown className="w-3.5 h-3.5" />
+                            <ChevronDown style={{ width: 14, height: 14 }} />
                           )}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => openEdit(q)}
-                          className="w-8 h-8 p-0 rounded-md"
+                          style={{
+                            borderRadius: 6,
+                            width: 32,
+                            height: 32,
+                            padding: 0,
+                          }}
                         >
-                          <Pencil className="w-3.5 h-3.5" />
+                          <Pencil style={{ width: 14, height: 14 }} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeleteId(q.id)}
-                          className="w-8 h-8 p-0 rounded-md text-destructive"
+                          style={{
+                            borderRadius: 6,
+                            width: 32,
+                            height: 32,
+                            padding: 0,
+                            color: "var(--destructive)",
+                          }}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 style={{ width: 14, height: 14 }} />
                         </Button>
                       </div>
                     </div>
 
-                    {/* Expanded — javob variantlari */}
                     {isExpanded && (
                       <div
                         style={{
@@ -607,15 +640,16 @@ export function TeacherQuestionsPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    justifyContent: "center",
+                    flexDirection: "column",
                     padding: "12px 20px",
                     borderTop: "1px solid var(--border)",
                     backgroundColor: "var(--card)",
                     borderRadius: "0 0 12px 12px",
                   }}
                 >
-                  <p style={{ fontSize: 13, color: "var(--muted-foreground)" }}>
-                    Jami {meta.total} ta savol
+                  <p style={{ fontSize: 14, color: "black" }}>
+                    -- Jami {meta.total} ta savol --
                   </p>
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 8 }}
@@ -650,7 +684,7 @@ export function TeacherQuestionsPage() {
           )}
         </TabsContent>
 
-        {/* ===== CREATE TAB ===== */}
+        {/* CREATE TAB */}
         <TabsContent value="create">
           <div
             style={{
@@ -661,7 +695,6 @@ export function TeacherQuestionsPage() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              {/* Fan tanlash */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>Fan *</Label>
                 <select
@@ -689,7 +722,6 @@ export function TeacherQuestionsPage() {
                 </select>
               </div>
 
-              {/* Savol matni */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>{`Savol matni * (LaTeX misol: $\\frac{3}{4}$)`}</Label>
                 <Textarea
@@ -700,7 +732,6 @@ export function TeacherQuestionsPage() {
                     borderRadius: 10,
                     minHeight: 100,
                     resize: "vertical",
-                    padding: "8px 12px",
                   }}
                 />
                 {questionText && (
@@ -726,7 +757,6 @@ export function TeacherQuestionsPage() {
                 )}
               </div>
 
-              {/* Javob variantlari */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>Javob variantlari * (to'g'ri javobni belgilang)</Label>
                 <div
@@ -737,7 +767,6 @@ export function TeacherQuestionsPage() {
                       key={i}
                       style={{ display: "flex", alignItems: "center", gap: 10 }}
                     >
-                      {/* To'g'ri javob radio */}
                       <button
                         type="button"
                         onClick={() => handleCorrectChange(i)}
@@ -827,7 +856,7 @@ export function TeacherQuestionsPage() {
           </div>
         </TabsContent>
 
-        {/* ===== IMPORT TAB ===== */}
+        {/* IMPORT TAB */}
         <TabsContent value="import">
           <div
             style={{
@@ -855,7 +884,6 @@ export function TeacherQuestionsPage() {
                 AI savollarni avtomatik aniqlaydi va import qiladi.
               </div>
 
-              {/* Fan tanlash */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>Fan *</Label>
                 <select
@@ -883,7 +911,6 @@ export function TeacherQuestionsPage() {
                 </select>
               </div>
 
-              {/* Fayl yuklash */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <Label>Fayl *</Label>
                 <label
@@ -931,7 +958,7 @@ export function TeacherQuestionsPage() {
                           color: "var(--muted-foreground)",
                         }}
                       >
-                        {(importFile.size / 1024).toFixed(1)} KB — fayl tanlandi
+                        {(importFile.size / 1024).toFixed(1)} KB
                       </p>
                     </>
                   ) : (
@@ -959,7 +986,6 @@ export function TeacherQuestionsPage() {
                 </label>
               </div>
 
-              {/* Import natija */}
               {importSuccess !== null && (
                 <div
                   style={{
@@ -1031,19 +1057,33 @@ export function TeacherQuestionsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editQuestion} onOpenChange={() => setEditQuestion(null)}>
-        <DialogContent className="max-w-lg rounded-2xl">
+        <DialogContent className="max-w-lg" style={{ borderRadius: 16 }}>
           <DialogHeader>
             <DialogTitle>Savolni tahrirlash</DialogTitle>
           </DialogHeader>
-
-          <div className="flex flex-col gap-5 py-2">
-            {/* Fan */}
-            <div className="flex flex-col gap-2">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              padding: "8px 0",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Label>Fan *</Label>
               <select
                 value={editSubjectId}
                 onChange={(e) => setEditSubjectId(e.target.value)}
-                className="h-11 px-3 rounded-xl border border-input bg-background text-sm outline-none"
+                style={{
+                  height: 44,
+                  padding: "0 12px",
+                  borderRadius: 10,
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--background)",
+                  fontSize: 14,
+                  color: "var(--foreground)",
+                  outline: "none",
+                }}
               >
                 <option value="">Fan tanlang</option>
                 {subjects
@@ -1055,41 +1095,61 @@ export function TeacherQuestionsPage() {
                   ))}
               </select>
             </div>
-
-            {/* Savol matni */}
-            <div className="flex flex-col gap-2 mt-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Label>Savol matni *</Label>
               <Textarea
                 value={editQuestionText}
                 onChange={(e) => setEditQuestionText(e.target.value)}
-                className="rounded-xl min-h-24 resize-y"
+                style={{ borderRadius: 10, minHeight: 100, resize: "vertical" }}
               />
               {editQuestionText && (
                 <div
-                  className="rounded-lg bg-muted text-sm mb-3"
-                  style={{ padding: "8px 12px" }}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    backgroundColor: "var(--muted)",
+                    fontSize: 14,
+                  }}
                 >
-                  <p className="text-xs text-muted-foreground">Ko'rinish:</p>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: "var(--muted-foreground)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Ko'rinish:
+                  </p>
                   <MathText text={editQuestionText} />
                 </div>
               )}
             </div>
-
-            {/* Javob variantlari */}
-            <div className="flex flex-col gap-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Label>Javob variantlari *</Label>
-              <div className="flex flex-col gap-2">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {editOptions.map((opt, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div
+                    key={i}
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
+                  >
                     <button
                       type="button"
                       onClick={() => handleEditCorrectChange(i)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-all"
                       style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
                         border: `2px solid ${opt.isCorrect ? "#10b981" : "var(--border)"}`,
                         backgroundColor: opt.isCorrect
                           ? "#10b981"
                           : "transparent",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        fontSize: 12,
+                        fontWeight: 600,
                         color: opt.isCorrect
                           ? "white"
                           : "var(--muted-foreground)",
@@ -1102,33 +1162,39 @@ export function TeacherQuestionsPage() {
                       onChange={(e) =>
                         handleEditOptionChange(i, e.target.value)
                       }
-                      className="rounded-lg flex-1"
+                      style={{ borderRadius: 8, flex: 1 }}
                     />
                   </div>
                 ))}
               </div>
             </div>
-
             {editError && (
-              <p className="text-xs text-destructive">{editError}</p>
+              <p style={{ fontSize: 13, color: "var(--destructive)" }}>
+                {editError}
+              </p>
             )}
           </div>
-
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setEditQuestion(null)}
-              className="rounded-xl"
+              style={{ borderRadius: 8 }}
             >
               Bekor qilish
             </Button>
             <Button
               onClick={handleUpdate}
               disabled={isUpdating}
-              className="rounded-xl"
+              style={{ borderRadius: 8 }}
             >
               {isUpdating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2
+                  style={{
+                    width: 16,
+                    height: 16,
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
               ) : (
                 "Saqlash"
               )}
@@ -1175,6 +1241,6 @@ export function TeacherQuestionsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

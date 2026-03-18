@@ -55,6 +55,13 @@ export default async function middleware(request: NextRequest) {
     const payload = parseJwt(accessToken);
     if (payload && !isTokenExpired(payload)) {
       // Role tekshiruv
+      if (
+        pathname.startsWith("/admin/users") &&
+        payload.role !== "super_admin"
+      ) {
+        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+      }
+
       if (pathname.startsWith("/admin") && payload.role === "teacher") {
         return NextResponse.redirect(
           new URL("/teacher/dashboard", request.url),

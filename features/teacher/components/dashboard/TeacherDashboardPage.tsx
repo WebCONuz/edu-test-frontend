@@ -8,7 +8,12 @@ import { MathText } from "@/shared/components/MathText";
 
 export function TeacherDashboardPage() {
   const { user } = useAuthStore();
-  const { data: questions, isLoading: isLoadingQuestions } = useMyQuestions();
+  const { data: questionsData, isLoading: isLoadingQuestions } = useMyQuestions(
+    1,
+    10000000,
+    undefined,
+  );
+  const questions = questionsData?.data ?? [];
   const { data: subjects, isLoading: isLoadingSubjects } = useSubjects();
 
   // const activeQuestions = questions?.filter((q) => q.isActive) ?? [];
